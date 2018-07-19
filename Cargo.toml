@@ -1,0 +1,11 @@
+[package]
+name = "focusvent_front"
+version = "0.1.0"
+authors = ["werner <werner@yahoo.es>"]
+
+[dependencies]
+yew = { git = "https://github.com/DenisKolodin/yew" }
+stdweb = "0.4.8"
+serde = "1.0.70"
+serde_derive = "1.0.70"
+log = "0.4.3"
