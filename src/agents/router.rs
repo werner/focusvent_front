@@ -1,4 +1,4 @@
-use services::route::RouteService;
+use services::router::RouteService;
 
 use yew::prelude::worker::*;
 
