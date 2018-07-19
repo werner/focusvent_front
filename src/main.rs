@@ -20,6 +20,7 @@ enum Msg {
 }
 
 struct Model {
+    e_component: EComponent,
     router: Box<Bridge<router::Router<()>>>
 }
 
@@ -32,7 +33,10 @@ impl Component for Model {
         let mut router = router::Router::bridge(callback);
 
         router.send(router::Request::GetCurrentRoute);
-        Model { router }
+        Model {
+            e_component: EComponent::ProductList,
+            router 
+        }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
@@ -61,7 +65,21 @@ impl Renderable<Model> for Model {
             <div>
                 <h1>{{ "Hola Mundo" }}</h1>
                 <button onclick=|_| Msg::NavigateTo(EComponent::ProductList),>{ "Lista de Productos" }</button>
+                <div>
+                  {self.e_component.view()}
             </div>
+        }
+    }
+}
+
+impl Renderable<Model> for EComponent {
+    fn view(&self) -> Html<Model> {
+        match *self {
+            EComponent::ProductList => {
+                html! {
+                    <h2> { "Lista de Productos" } </h2>
+                }
+            }
         }
     }
 }
