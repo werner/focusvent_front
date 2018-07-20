@@ -10,17 +10,17 @@ mod services;
 use yew::prelude::*;
 use agents::router;
 
-pub enum EComponent {
+pub enum ChildComponent {
     ProductList
 }
 
 enum Msg {
-    NavigateTo(EComponent),
+    NavigateTo(ChildComponent),
     HandleRoute(router::Route<()>)
 }
 
 struct RootModel {
-    e_component: EComponent,
+    child_component: ChildComponent,
     router: Box<Bridge<router::Router<()>>>
 }
 
@@ -34,7 +34,7 @@ impl Component for RootModel {
 
         router.send(router::Request::GetCurrentRoute);
         RootModel {
-            e_component: EComponent::ProductList,
+            child_component: ChildComponent::ProductList,
             router 
         }
     }
@@ -64,18 +64,18 @@ impl Renderable<RootModel> for RootModel {
         html! {
             <div>
                 <h1>{{ "Hola Mundo" }}</h1>
-                <button onclick=|_| Msg::NavigateTo(EComponent::ProductList),>{ "Lista de Productos" }</button>
+                <button onclick=|_| Msg::NavigateTo(ChildComponent::ProductList),>{ "Lista de Productos" }</button>
                 <div>
-                  {self.e_component.view()}
+                  {self.child_component.view()}
             </div>
         }
     }
 }
 
-impl Renderable<RootModel> for EComponent {
+impl Renderable<RootModel> for ChildComponent {
     fn view(&self) -> Html<RootModel> {
         match *self {
-            EComponent::ProductList => {
+            ChildComponent::ProductList => {
                 html! {
                     <h2> { "Lista de Productos" } </h2>
                 }
