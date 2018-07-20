@@ -1,4 +1,4 @@
-#[macro_use] extern crate stdweb;
+extern crate stdweb;
 #[macro_use] extern crate yew;
 extern crate serde;
 #[macro_use] extern crate serde_derive;
@@ -9,36 +9,22 @@ mod services;
 
 use yew::prelude::*;
 use agents::router;
-use stdweb::unstable::TryFrom;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ChildComponent {
-    Js(stdweb::Value),
     ProductList,
-    Parent
+    Parent,
+    PathNotFound(String)
 }
-
-impl TryFrom<stdweb::Value> for ChildComponent {
-    type Error = ();
-    fn try_from(value: stdweb::Value) -> Result<ChildComponent, ()> {
-        Ok(ChildComponent::Js(value))
-    }
-}
-
-impl Default for ChildComponent {
-    fn default() -> ChildComponent { ChildComponent::Parent }
-}
-
-js_serializable!(ChildComponent);
 
 enum Msg {
     NavigateTo(ChildComponent),
-    HandleRoute(router::Route<ChildComponent>)
+    HandleRoute(router::Route<()>)
 }
 
 struct RootModel {
     child_component: ChildComponent,
-    router: Box<Bridge<router::Router<ChildComponent>>>
+    router: Box<Bridge<router::Router<()>>>
 }
 
 impl Component for RootModel {
@@ -46,7 +32,7 @@ impl Component for RootModel {
     type Properties = ();
 
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let callback = link.send_back(|route: router::Route<ChildComponent>| Msg::HandleRoute(route));
+        let callback = link.send_back(|route: router::Route<()>| Msg::HandleRoute(route));
         let mut router = router::Router::bridge(callback);
 
         router.send(router::Request::GetCurrentRoute);
@@ -59,7 +45,14 @@ impl Component for RootModel {
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::HandleRoute(route) => {
-                self.child_component = route.state;
+                self.child_component = if let Some(first_segment) = route.path_segments.get(0) {
+                    match first_segment.as_str() {
+                        "products" => ChildComponent::ProductList,
+                        other => ChildComponent::PathNotFound(other.into())
+                    }
+                } else {
+                    ChildComponent::PathNotFound("path not found".into())
+                };
                 true
             },
             Msg::NavigateTo(child_component) => {
@@ -67,7 +60,7 @@ impl Component for RootModel {
                     path_segments: vec!["products".to_string()],
                     query: None,
                     fragment: None,
-                    state: child_component
+                    state: ()
                 };
 
                 self.router.send(router::Request::ChangeRoute(route));
@@ -102,7 +95,11 @@ impl Renderable<RootModel> for ChildComponent {
             ChildComponent::Parent => {
                 html! { <div></div> }
             },
-            ChildComponent::Js(_) => { html! { <div></div> } }
+            ChildComponent::PathNotFound(ref path) => html! {
+                <div>
+                    {format!("Invalid path: '{}'", path)}
+                </div>
+            }
         }
     }
 }
