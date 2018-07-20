@@ -19,12 +19,12 @@ enum Msg {
     HandleRoute(router::Route<()>)
 }
 
-struct Model {
+struct RootModel {
     e_component: EComponent,
     router: Box<Bridge<router::Router<()>>>
 }
 
-impl Component for Model {
+impl Component for RootModel {
     type Message = Msg;
     type Properties = ();
 
@@ -33,7 +33,7 @@ impl Component for Model {
         let mut router = router::Router::bridge(callback);
 
         router.send(router::Request::GetCurrentRoute);
-        Model {
+        RootModel {
             e_component: EComponent::ProductList,
             router 
         }
@@ -59,7 +59,7 @@ impl Component for Model {
     }
 }
 
-impl Renderable<Model> for Model {
+impl Renderable<RootModel> for RootModel {
     fn view(&self) -> Html<Self> {
         html! {
             <div>
@@ -72,8 +72,8 @@ impl Renderable<Model> for Model {
     }
 }
 
-impl Renderable<Model> for EComponent {
-    fn view(&self) -> Html<Model> {
+impl Renderable<RootModel> for EComponent {
+    fn view(&self) -> Html<RootModel> {
         match *self {
             EComponent::ProductList => {
                 html! {
@@ -86,6 +86,6 @@ impl Renderable<Model> for EComponent {
 
 fn main() {
     yew::initialize();
-    App::<Model>::new().mount_to_body();
+    App::<RootModel>::new().mount_to_body();
     yew::run_loop();
 }
