@@ -1,111 +1,114 @@
 extern crate stdweb;
 #[macro_use] extern crate yew;
+#[macro_use] extern crate yew_router;
 extern crate serde;
 #[macro_use] extern crate serde_derive;
 #[macro_use] extern crate log;
 
-mod agents;
-mod services;
+mod components;
 
 use yew::prelude::*;
-use agents::router;
+use yew_router::prelude::*;
+use yew_router::components::RouterButton;
+use yew_router::components::RouterLink;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum ChildComponent {
-    ProductList,
-    Parent,
-    PathNotFound(String)
-}
+use components::product_list::ProductList;
 
 enum Msg {
-    NavigateTo(ChildComponent),
-    HandleRoute(router::Route<()>)
+    NoOp
 }
 
-struct RootModel {
-    child_component: ChildComponent,
-    router: Box<Bridge<router::Router<()>>>
-}
+#[derive(Clone, Debug, PartialEq, Default)]
+struct Props;
 
-impl Component for RootModel {
+struct Model { }
+struct Home { }
+
+impl Component for Model {
     type Message = Msg;
-    type Properties = ();
+    type Properties = Props;
 
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let callback = link.send_back(|route: router::Route<()>| Msg::HandleRoute(route));
-        let mut router = router::Router::bridge(callback);
-
-        router.send(router::Request::GetCurrentRoute);
-        RootModel {
-            child_component: ChildComponent::Parent,
-            router 
-        }
+        Model { }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::HandleRoute(route) => {
-                self.child_component = if let Some(first_segment) = route.path_segments.get(0) {
-                    match first_segment.as_str() {
-                        "products" => ChildComponent::ProductList,
-                        other => ChildComponent::PathNotFound(other.into())
-                    }
-                } else {
-                    ChildComponent::PathNotFound("path not found".into())
-                };
-                true
-            },
-            Msg::NavigateTo(child_component) => {
-                let route = router::Route {
-                    path_segments: vec!["products".to_string()],
-                    query: None,
-                    fragment: None,
-                    state: ()
-                };
-
-                self.router.send(router::Request::ChangeRoute(route));
-                false
-            }
+            Msg::NoOp => false
         }
     }
 }
 
-impl Renderable<RootModel> for RootModel {
+impl Component for Home {
+    type Message = ();
+    type Properties = Props;
+
+    fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
+        Home { }
+    }
+
+    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+        false
+    }
+}
+
+impl Routable for Home {
+    fn resolve_props(route: &Route) -> Option<Self::Properties> {
+        let first_segment = route.path_segments.get(0).unwrap();
+        if "" == first_segment.as_str() {
+            Some(Props)
+        } else {
+            None
+        }
+    }
+
+    fn will_try_to_route(route: &Route) -> bool {
+        route.path_segments.get(0).is_some()
+    }
+}
+
+impl Renderable<Home> for Home {
     fn view(&self) -> Html<Self> {
         html! {
             <div>
-                <h1>{ "Hola Mundo" }</h1>
-                <button onclick=|_| Msg::NavigateTo(ChildComponent::ProductList),>{ "Lista de Productos" }</button>
+                <h1>{ "Home" }</h1>
+            </div>
+        }
+    }
+}
+
+impl Renderable<Model> for Model {
+    fn view(&self) -> Html<Self> {
+        let router_props: yew_router::Props = yew_router::Props {
+            routes: routes![ProductList, Home],
+            page_not_found: Some(DefaultPage(routing_failed_page))
+        };
+        html! {
+            <div>
+                <nav class="menu",>
+                    <RouterButton: text=String::from("Go to Products"), route=Route::parse("/products"), />
+                    <RouterLink: text=String::from("Go to Products"), route=Route::parse("/products"), />
+                </nav>
                 <div>
-                  { self.child_component.view() }
+                    <YewRouter: with router_props, />
                 </div>
             </div>
         }
     }
 }
 
-impl Renderable<RootModel> for ChildComponent {
-    fn view(&self) -> Html<RootModel> {
-        match *self {
-            ChildComponent::ProductList => {
-                html! {
-                    <h2> { "Lista de Productos" } </h2>
-                }
-            },
-            ChildComponent::Parent => {
-                html! { <div></div> }
-            },
-            ChildComponent::PathNotFound(ref path) => html! {
-                <div>
-                    {format!("Invalid path: '{}'", path)}
-                </div>
-            }
-        }
+fn routing_failed_page(route: &Route) -> Html<YewRouter> {
+    html! {
+        <>
+            {"This is the default 404 page"}
+            <br/>
+            {format!("Could not route: '{}'", route.to_route_string())}
+        </>
     }
 }
 
 fn main() {
     yew::initialize();
-    App::<RootModel>::new().mount_to_body();
+    App::<Model>::new().mount_to_body();
     yew::run_loop();
 }
